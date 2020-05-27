@@ -4,21 +4,14 @@ namespace Icinga\Module\Cube\Controllers;
 
 use GuzzleHttp\Psr7\ServerRequest;
 use Icinga\Module\Cube\Common\IcingaDb;
+use Icinga\Module\Cube\icingadbCubeRenderer;
 use Icinga\Module\Cube\SelectDimensionForm;
 use ipl\Sql\Select;
 use ipl\Web\Compat\CompatController;
 use PDO;
 
 /**
- * TODOs:
- *
- * - Database connection to Icinga DB
- * - Welche custom vars gibt es für unsere Hosts? (Das ist eine Query gegen die Icinga DB)
- * select c.name from host h inner join host_customvar hc on hc.host_id = h.id inner join customvar c on c.id = hc.customvar_id group by c.name;
- * - ipl Form erstellen, die die custom var Liste von oben anzeigt
- * - Nach der Auswahl einer custom var, werden die unterschiedlichen Werte dieser custom var gezählt und angezeigt
- * select c.value, sum(1) from host h inner join host_customvar hc on hc.host_id = h.id inner join customvar c on c.id = hc.customvar_id where c.name = "app" group by c.value;
- * select c.value, sum(1) from host h inner join host_customvar hc on hc.host_id = h.id inner join customvar c on c.id = hc.customvar_id where c.name = "app" group by c.value with rollup;
+ * Icingadb cube controller class
  */
 class IcingadbController extends CompatController
 {
@@ -29,8 +22,11 @@ class IcingadbController extends CompatController
         $this->setTitle('Icinga DB Host Cube');
 
         $select = (new Select())
-            ->columns('name')
-            ->from('host');
+            ->columns('customvar.name')
+            ->from('host')
+            ->join('host_customvar','host_customvar.host_id = host.id')
+            ->join('customvar','customvar.id = host_customvar.customvar_id')
+            ->groupBy('customvar.name');
 
         $dimensions = $this->getDb()->select($select)->fetchAll(PDO::FETCH_COLUMN, 0);
 
@@ -41,7 +37,32 @@ class IcingadbController extends CompatController
         $this->addContent($form);
 
         if ($this->params->has('dimensions')) {
-            $dimensions = $this->params->get('dimensions');
+            $dimensions =  explode(',', $this->params->get('dimensions'));
+
+            $select = (new Select())
+                ->from('host h');
+            $columns = [];
+            foreach ($dimensions as $dim) {
+                $select
+                    ->join("host_customvar {$dim}_junction","{$dim}_junction.host_id = h.id")
+                    ->join("customvar {$dim}","{$dim}.id = {$dim}_junction.customvar_id AND {$dim}.name = \"{$dim}\"");
+
+                $columns[$dim] = $dim . '.value';
+            }
+
+            $groupByValues = $columns;
+            $lastElmKey = array_key_last($columns);
+
+            $groupByValues[$lastElmKey] = $columns[$lastElmKey] . ' WITH ROLLUP' ;
+            $columns['cnt'] = 'SUM(1)';
+
+            $select
+                ->columns($columns)
+                ->groupBy($groupByValues);
+
+            $rs = $this->getDb()->select($select)->fetchAll();
+            $details = (new icingadbCubeRenderer($rs))->setDimensions($dimensions);
+            $this->addContent($details);
         }
     }
 }
