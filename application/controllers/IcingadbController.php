@@ -4,10 +4,12 @@ namespace Icinga\Module\Cube\Controllers;
 
 use GuzzleHttp\Psr7\ServerRequest;
 use Icinga\Module\Cube\Common\IcingaDb;
+use Icinga\Module\Cube\CubeSettings;
 use Icinga\Module\Cube\icingadbCubeRenderer;
 use Icinga\Module\Cube\SelectDimensionForm;
 use ipl\Sql\Select;
 use ipl\Web\Compat\CompatController;
+use ipl\Web\Url;
 use PDO;
 
 /**
@@ -36,6 +38,11 @@ class IcingadbController extends CompatController
 
         $this->addContent($form);
 
+        $settings = (new CubeSettings())
+            ->setBaseUrl(Url::fromPath('cube/icingadb'));
+
+        $this->addContent($settings);
+
         if ($this->params->has('dimensions')) {
             $dimensions =  explode(',', $this->params->get('dimensions'));
 
@@ -63,6 +70,8 @@ class IcingadbController extends CompatController
             $rs = $this->getDb()->select($select)->fetchAll();
             $details = (new icingadbCubeRenderer($rs))->setDimensions($dimensions);
             $this->addContent($details);
+
+            $settings->setDimensions($dimensions);
         }
     }
 }
