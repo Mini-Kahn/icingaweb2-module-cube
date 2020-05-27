@@ -44,12 +44,12 @@ class IcingadbController extends CompatController
         $this->addContent($settings);
 
         if ($this->params->has('dimensions')) {
-            $dimensions =  explode(',', $this->params->get('dimensions'));
+            $urlDimensions =  explode(',', $this->params->get('dimensions'));
 
             $select = (new Select())
                 ->from('host h');
             $columns = [];
-            foreach ($dimensions as $dim) {
+            foreach ($urlDimensions as $dim) {
                 $select
                     ->join("host_customvar {$dim}_junction","{$dim}_junction.host_id = h.id")
                     ->join("customvar {$dim}","{$dim}.id = {$dim}_junction.customvar_id AND {$dim}.name = \"{$dim}\"");
@@ -68,10 +68,10 @@ class IcingadbController extends CompatController
                 ->groupBy($groupByValues);
 
             $rs = $this->getDb()->select($select)->fetchAll();
-            $details = (new icingadbCubeRenderer($rs))->setDimensions($dimensions);
+            $details = (new icingadbCubeRenderer($rs))->setDimensions($urlDimensions);
             $this->addContent($details);
 
-            $settings->setDimensions($dimensions);
+            $settings->setDimensions($urlDimensions);
         }
     }
 }
