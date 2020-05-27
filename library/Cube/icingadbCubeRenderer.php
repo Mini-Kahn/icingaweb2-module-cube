@@ -8,7 +8,7 @@ use ipl\Html\Html;
 /**
  * The detail widget show key-value pairs as simple list
  */
-class icingadbCubeRenderer extends BaseHtmlElement
+class IcingadbCubeRenderer extends BaseHtmlElement
 {
     protected $data;
 
@@ -54,7 +54,7 @@ class icingadbCubeRenderer extends BaseHtmlElement
      *
      * dynamically render up to 3 dimensions
      */
-    public function renderDimension()
+    public function renderDimensions()
     {
         $dim = $this->getDimensions();
         $lastValue = null;
@@ -92,6 +92,6 @@ class icingadbCubeRenderer extends BaseHtmlElement
 
     protected function assemble()
     {
-       $this->renderDimension();
+       $this->renderDimensions();
     }
 }
