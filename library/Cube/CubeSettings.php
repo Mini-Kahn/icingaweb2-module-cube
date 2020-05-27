@@ -83,6 +83,29 @@ class CubeSettings extends BaseHtmlElement
         return $this;
     }
 
+    /**
+     * @param int $indexToMove index value of array value that has to be moved
+     *
+     * @param boolean $isDirectionUp move direction
+     *
+     * @return array swapped associative array
+     */
+    protected function swapArray($indexToMove, $isDirectionUp) {
+        $myDimensions = $this->getDimensions();
+        if($isDirectionUp) {
+            $tempVal = $myDimensions[$indexToMove-1];
+            $myDimensions[$indexToMove-1] = $myDimensions[$indexToMove];
+            $myDimensions[$indexToMove] = $tempVal;
+
+            return array_combine($myDimensions, $myDimensions);
+        }
+        $tempVal = $myDimensions[$indexToMove+1];
+        $myDimensions[$indexToMove+1] = $myDimensions[$indexToMove];
+        $myDimensions[$indexToMove] = $tempVal;
+
+        return array_combine($myDimensions, $myDimensions);
+    }
+
     protected function assemble()
     {
         $allDimensions = $this->getDimensions();
@@ -91,14 +114,36 @@ class CubeSettings extends BaseHtmlElement
         $baseUrl = $this->getBaseUrl();
         $content = [];
         $dimensionsParam = $this->getDimensionsParam();
+        $indexCounter = 0;
         foreach ($allDimensions as $dimension) {
             $dimensions = $allDimensions;
             unset($dimensions[$dimension]);
-            $content[] = new Link(
+            $element = Html::tag('div');
+            $element->add(new Link(
                 new Icon('cancel'),
-                $baseUrl->with([$dimensionsParam => implode(',', $dimensions)])
-            );
-        }
+                !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $dimensions)]) : $baseUrl->with([])
+            ));
+            if($indexCounter) {
+                $element->add(new Link(
+                    new Icon('angle-double-up'),
+                    !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter, true))]) : $baseUrl->with([])
+                ));
+            } else { //TODO (SD) fix this workaround, class is doing the trick here
+                $element->add(Html::tag('span',['class' => 'dimension-name']));
+            }
+            if ($indexCounter < 2) {
+                $element->add(new Link(
+                    new Icon('angle-double-down'),
+                    !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter,false))]) : $baseUrl->with([])
+                ));
+            } else { //TODO (SD) fix this workaround, class is doing the trick here
+                $element->add(Html::tag('span',['class' => 'dimension-name']));
+            }
+
+            $element->add(Html::tag('span',['class' => 'dimension-name'], $dimension));
+            $content[] = $element;
+            $indexCounter++;
+        };
 
         $this->add(Html::tag('ul', Html::wrapEach($content, 'li')));
     }
