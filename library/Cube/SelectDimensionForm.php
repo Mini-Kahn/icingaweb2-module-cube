@@ -36,7 +36,12 @@ class SelectDimensionForm extends CompatForm
         $this->addElement('select', 'dimensions', [
             'class' => 'autosubmit',
             'label' => 'Dimension',
-            'options' => array_combine($this->getDimensions(), $this->getDimensions())
+            //'options' => array_combine($this->getDimensions(), $this->getDimensions())
+            'multiOptions'  => array_merge(
+                ['' => '+ Add a dimension'],
+                array_combine($this->getDimensions(), $this->getDimensions())
+            ),
+            'disable'       => ['']
         ]);
     }
 }

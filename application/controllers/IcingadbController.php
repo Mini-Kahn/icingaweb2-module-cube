@@ -7,6 +7,7 @@ use Icinga\Module\Cube\Common\IcingaDb;
 use Icinga\Module\Cube\CubeSettings;
 use Icinga\Module\Cube\icingadbCubeRenderer;
 use Icinga\Module\Cube\SelectDimensionForm;
+use ipl\Html\Html;
 use ipl\Sql\Select;
 use ipl\Web\Compat\CompatController;
 use ipl\Web\Url;
@@ -23,6 +24,13 @@ class IcingadbController extends CompatController
     {
         $this->setTitle('Icinga DB Host Cube');
 
+        $urlDimensions = $this->params->get('dimensions');
+        $Header = Html::tag('h1',
+            ['class' => 'dimension-header'],
+            'Cube: '. str_replace(',', ' -> ', $this->params->get('dimensions'))
+        );
+        $this->addContent($Header);
+
         $select = (new Select())
             ->columns('customvar.name')
             ->from('host')
@@ -31,36 +39,37 @@ class IcingadbController extends CompatController
             ->groupBy('customvar.name');
 
         $dimensions = $this->getDb()->select($select)->fetchAll(PDO::FETCH_COLUMN, 0);
-
         $form = (new SelectDimensionForm())
             ->setDimensions($dimensions)
             ->handleRequest(ServerRequest::fromGlobals());
 
         $this->addContent($form);
 
-        $settings = (new CubeSettings())
-            ->setBaseUrl(Url::fromPath('cube/icingadb'));
 
-        $this->addContent($settings);
 
-        if ($this->params->has('dimensions')) {
-            $urlDimensions =  explode(',', $this->params->get('dimensions'));
+        if ($urlDimensions) {
+            $urlDimensions =  explode(',', $urlDimensions);
+
+            $settings = (new CubeSettings())
+                ->setBaseUrl(Url::fromPath('cube/icingadb'))
+                ->setDimensions($urlDimensions);
+            $this->addContent($settings);
 
             $select = (new Select())
                 ->from('host h');
             $columns = [];
-            foreach ($urlDimensions as $dim) {
+            foreach ($urlDimensions as $dimension) {
                 $select
-                    ->join("host_customvar {$dim}_junction","{$dim}_junction.host_id = h.id")
-                    ->join("customvar {$dim}","{$dim}.id = {$dim}_junction.customvar_id AND {$dim}.name = \"{$dim}\"");
+                    ->join("host_customvar {$dimension}_junction","{$dimension}_junction.host_id = h.id")
+                    ->join("customvar {$dimension}","{$dimension}.id = {$dimension}_junction.customvar_id AND {$dimension}.name = \"{$dimension}\"");
 
-                $columns[$dim] = $dim . '.value';
+                $columns[$dimension] = $dimension . '.value';
             }
 
             $groupByValues = $columns;
             $lastElmKey = array_key_last($columns);
 
-            $groupByValues[$lastElmKey] = $columns[$lastElmKey] . ' WITH ROLLUP' ;
+            $groupByValues[$lastElmKey] = $columns[$lastElmKey] . ' WITH ROLLUP';
             $columns['cnt'] = 'SUM(1)';
 
             $select
@@ -70,8 +79,6 @@ class IcingadbController extends CompatController
             $rs = $this->getDb()->select($select)->fetchAll();
             $details = (new icingadbCubeRenderer($rs))->setDimensions($urlDimensions);
             $this->addContent($details);
-
-            $settings->setDimensions($urlDimensions);
         }
     }
 }

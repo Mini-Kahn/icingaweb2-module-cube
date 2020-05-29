@@ -477,3 +477,78 @@ select option[value=""] {
     color: #aaa;
     background-color: white;
 }
+
+// SD CODE
+.dimension-list {
+  list-style-type: none;
+}
+
+.icinga-cube {
+  color: white;
+  display:flex;
+}
+
+.each-dim-list {
+  display:flex;
+  flex-wrap: wrap;
+
+  .each-dim-list-header {
+    width: 10em;
+    height: 10em;
+    margin: 0.5em;
+    padding: 0.30em;
+    display: flex;
+    border-left: 0.3em red solid;
+    font-weight: bold;
+  }
+}
+
+.cube-each-dimension {
+  background-color: #f56;
+  display: inline-block;
+  padding: 0.30em;
+  width: 10em;
+  height: 10em;
+  margin: 0.5em;
+}
+
+.cube-link {
+  flex: 1;
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dimension-inner-header {
+  display: flex;
+  text-align: center;
+  color: white;
+  margin-bottom: 0.5em;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.dimension-inner-body {
+  display: flex;
+  justify-content: center;
+  color: white;
+  overflow: auto;
+  font-size: 3em;
+}
+
+.dimension-inner-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  font-size: 1.0em;
+  span {
+    background-color: #4b7;
+    padding: 0.2em;
+  }
+}
+
+.cube-third-dim-wrapper {
+  border-bottom: 0.2em solid red;
+  flex-basis: 100%;
+}

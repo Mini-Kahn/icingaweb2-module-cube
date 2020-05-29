@@ -91,23 +91,28 @@ class CubeSettings extends BaseHtmlElement
      * @return array swapped associative array
      */
     protected function swapArray($indexToMove, $isDirectionUp) {
-        $myDimensions = $this->getDimensions();
-        if($isDirectionUp) {
-            $tempVal = $myDimensions[$indexToMove-1];
-            $myDimensions[$indexToMove-1] = $myDimensions[$indexToMove];
-            $myDimensions[$indexToMove] = $tempVal;
+        $urlDimensions = $this->getDimensions();
 
-            return array_combine($myDimensions, $myDimensions);
+        if ($isDirectionUp) {
+            if (isset($urlDimensions[$indexToMove - 1])) {
+                $tempVal = $urlDimensions[$indexToMove - 1];
+                $urlDimensions[$indexToMove - 1] = $urlDimensions[$indexToMove];
+                $urlDimensions[$indexToMove] = $tempVal;
+            }
+            return array_combine($urlDimensions, $urlDimensions);
         }
-        $tempVal = $myDimensions[$indexToMove+1];
-        $myDimensions[$indexToMove+1] = $myDimensions[$indexToMove];
-        $myDimensions[$indexToMove] = $tempVal;
+        if (isset($urlDimensions[$indexToMove + 1])) {
 
-        return array_combine($myDimensions, $myDimensions);
+            $tempVal = $urlDimensions[$indexToMove + 1];
+            $urlDimensions[$indexToMove + 1] = $urlDimensions[$indexToMove];
+            $urlDimensions[$indexToMove] = $tempVal;
+        }
+        return array_combine($urlDimensions, $urlDimensions);
     }
 
     protected function assemble()
     {
+       // $this->swapArray(2, true);die;
         $allDimensions = $this->getDimensions();
         // Combine for key access
         $allDimensions = array_combine($allDimensions, $allDimensions);
@@ -123,7 +128,7 @@ class CubeSettings extends BaseHtmlElement
                 new Icon('cancel'),
                 !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $dimensions)]) : $baseUrl->with([])
             ));
-            if($indexCounter) {
+            if ($indexCounter) {
                 $element->add(new Link(
                     new Icon('angle-double-up'),
                     !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter, true))]) : $baseUrl->with([])
@@ -131,7 +136,7 @@ class CubeSettings extends BaseHtmlElement
             } else { //TODO (SD) fix this workaround, class is doing the trick here
                 $element->add(Html::tag('span',['class' => 'dimension-name']));
             }
-            if ($indexCounter < 2) {
+            if ($indexCounter !=count($allDimensions)-1  && count($allDimensions) > 1) {
                 $element->add(new Link(
                     new Icon('angle-double-down'),
                     !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter,false))]) : $baseUrl->with([])
@@ -143,8 +148,8 @@ class CubeSettings extends BaseHtmlElement
             $element->add(Html::tag('span',['class' => 'dimension-name'], $dimension));
             $content[] = $element;
             $indexCounter++;
-        };
+        }
 
-        $this->add(Html::tag('ul', Html::wrapEach($content, 'li')));
+            $this->add(Html::tag('ul',['class' => 'dimension-list'] ,Html::wrapEach($content, 'li')));
     }
 }
