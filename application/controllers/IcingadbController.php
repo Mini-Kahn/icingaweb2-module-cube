@@ -11,6 +11,7 @@ use ipl\Html\Html;
 use ipl\Sql\Select;
 use ipl\Web\Compat\CompatController;
 use ipl\Web\Url;
+use ipl\Web\Widget\ActionLink;
 use PDO;
 
 /**
@@ -22,14 +23,17 @@ class IcingadbController extends CompatController
 
     public function indexAction()
     {
-        $this->setTitle('Icinga DB Host Cube');
 
+        $this->setTitle('Icinga DB Host Cube');
+        $isSetSettingParam = (bool) $this->params->get('Showsettings');
+        //$urlDimensions is null or string and (! $urlDimensions) is same as null
         $urlDimensions = $this->params->get('dimensions');
+
         $Header = Html::tag('h1',
             ['class' => 'dimension-header'],
-            'Cube: '. str_replace(',', ' -> ', $this->params->get('dimensions'))
+            'Cube: '. str_replace(',', ' -> ', $urlDimensions)
         );
-        $this->addContent($Header);
+        $this->addControl($Header);
 
         $select = (new Select())
             ->columns('customvar.name')
@@ -39,38 +43,81 @@ class IcingadbController extends CompatController
             ->groupBy('customvar.name');
 
         $dimensions = $this->getDb()->select($select)->fetchAll(PDO::FETCH_COLUMN, 0);
-        $form = (new SelectDimensionForm())
+
+        // remove already selected items from the option list
+        foreach (explode(',', $urlDimensions) as $item) {
+            if (($key = array_search($item, $dimensions)) !== false) {
+                unset($dimensions[$key]);
+            }
+        }
+
+        if(! $urlDimensions || $isSetSettingParam) {
+            $showSettings = new ActionLink(
+                $this->translate('Hide settings'),
+                Url::fromRequest()->remove('Showsettings'),
+                'wrench',
+                ['data-base-target' => '_self']
+            );
+        } else {
+            $showSettings = new ActionLink(
+                $this->translate('Show settings'),
+                Url::fromRequest()->addParams(['Showsettings' => 1]),
+                'wrench',
+                ['data-base-target' => '_self']
+            );
+        }
+        $this->addControl($showSettings);
+
+        $selectForm = (new SelectDimensionForm())
+            ->on(SelectDimensionForm::ON_SUCCESS, function ($selectForm) use($urlDimensions) {
+                if (! $urlDimensions) {
+                    $toSetDimension = $selectForm->getValue('dimensions');
+                } else {
+                    $toAddParam = $selectForm->getValue('dimensions');
+                    $toSetDimension = $urlDimensions . ',' . $toAddParam;
+                }
+                $this->redirectNow(Url::fromRequest()->with('dimensions', $toSetDimension));
+            })
             ->setDimensions($dimensions)
             ->handleRequest(ServerRequest::fromGlobals());
 
-        $this->addContent($form);
-
-
+        if (count(explode(',', $urlDimensions)) === 3) {
+            $selectForm->remove($selectForm->getElement('dimensions'));
+        }
+        if ($isSetSettingParam || ! $urlDimensions) $this->addContent($selectForm);
 
         if ($urlDimensions) {
             $urlDimensions =  explode(',', $urlDimensions);
 
             $settings = (new CubeSettings())
-                ->setBaseUrl(Url::fromPath('cube/icingadb'))
+                ->setBaseUrl(Url::fromRequest())
                 ->setDimensions($urlDimensions);
-            $this->addContent($settings);
+
+            if ($isSetSettingParam) $this->addContent($settings);
 
             $select = (new Select())
                 ->from('host h');
+
             $columns = [];
             foreach ($urlDimensions as $dimension) {
                 $select
-                    ->join("host_customvar {$dimension}_junction","{$dimension}_junction.host_id = h.id")
-                    ->join("customvar {$dimension}","{$dimension}.id = {$dimension}_junction.customvar_id AND {$dimension}.name = \"{$dimension}\"");
+                    ->join(
+                        "host_customvar {$dimension}_junction",
+                        "{$dimension}_junction.host_id = h.id"
+                    )
+                    ->join(
+                        "customvar {$dimension}",
+                        "{$dimension}.id = {$dimension}_junction.customvar_id AND {$dimension}.name = \"{$dimension}\""
+                    );
 
                 $columns[$dimension] = $dimension . '.value';
             }
 
             $groupByValues = $columns;
-            $lastElmKey = array_key_last($columns);
-
-            $groupByValues[$lastElmKey] = $columns[$lastElmKey] . ' WITH ROLLUP';
             $columns['cnt'] = 'SUM(1)';
+            $lastElmKey = array_key_last($groupByValues);
+            $groupByValues[$lastElmKey] = $groupByValues[$lastElmKey] . ' WITH ROLLUP';
+
 
             $select
                 ->columns($columns)

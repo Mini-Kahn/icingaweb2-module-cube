@@ -112,7 +112,6 @@ class CubeSettings extends BaseHtmlElement
 
     protected function assemble()
     {
-       // $this->swapArray(2, true);die;
         $allDimensions = $this->getDimensions();
         // Combine for key access
         $allDimensions = array_combine($allDimensions, $allDimensions);
@@ -122,16 +121,18 @@ class CubeSettings extends BaseHtmlElement
         $indexCounter = 0;
         foreach ($allDimensions as $dimension) {
             $dimensions = $allDimensions;
+
             unset($dimensions[$dimension]);
+
             $element = Html::tag('div');
             $element->add(new Link(
                 new Icon('cancel'),
-                !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $dimensions)]) : $baseUrl->with([])
+                !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $dimensions)]) : Url::fromPath('cube/icingadb')
             ));
             if ($indexCounter) {
                 $element->add(new Link(
                     new Icon('angle-double-up'),
-                    !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter, true))]) : $baseUrl->with([])
+                    !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter, true))]) : $baseUrl
                 ));
             } else { //TODO (SD) fix this workaround, class is doing the trick here
                 $element->add(Html::tag('span',['class' => 'dimension-name']));
@@ -139,7 +140,7 @@ class CubeSettings extends BaseHtmlElement
             if ($indexCounter !=count($allDimensions)-1  && count($allDimensions) > 1) {
                 $element->add(new Link(
                     new Icon('angle-double-down'),
-                    !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter,false))]) : $baseUrl->with([])
+                    !empty($dimensions) ? $baseUrl->with([$dimensionsParam => implode(',', $this->swapArray($indexCounter,false))]) : $baseUrl
                 ));
             } else { //TODO (SD) fix this workaround, class is doing the trick here
                 $element->add(Html::tag('span',['class' => 'dimension-name']));
@@ -150,6 +151,6 @@ class CubeSettings extends BaseHtmlElement
             $indexCounter++;
         }
 
-            $this->add(Html::tag('ul',['class' => 'dimension-list'] ,Html::wrapEach($content, 'li')));
+        $this->add(Html::tag('ul',['class' => 'dimension-list'] ,Html::wrapEach($content, 'li')));
     }
 }

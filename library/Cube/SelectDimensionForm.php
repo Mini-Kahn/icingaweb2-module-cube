@@ -6,7 +6,7 @@ use ipl\Web\Compat\CompatForm;
 
 class SelectDimensionForm extends CompatForm
 {
-    protected $method = 'GET';
+  //  protected $method = 'POST';
 
     /** @var array Available dimensions */
     protected $dimensions;
@@ -41,7 +41,9 @@ class SelectDimensionForm extends CompatForm
                 ['' => '+ Add a dimension'],
                 array_combine($this->getDimensions(), $this->getDimensions())
             ),
-            'disable'       => ['']
+            'disable'       => [''],
+            'value'       => ''
         ]);
     }
+
 }
