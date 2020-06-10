@@ -2,6 +2,8 @@
 
 namespace Icinga\Module\Cube;
 
+use Icinga\Data\Tree\TreeNode;
+use Icinga\Data\Tree\TreeNodeIterator;
 use ipl\Html\BaseHtmlElement;
 use ipl\Html\Html;
 use ipl\Web\Widget\Icon;
@@ -26,13 +28,16 @@ class IcingadbCubeRenderer extends BaseHtmlElement
      */
     public function __construct($rawData)
     {
-        $loopCount = 0;
-        $newData = [];
+        // this was included to make obj to a array and remove extra ''
+        //$loopCount = 0;
+        /*$newData = [];
         foreach (json_decode(json_encode($rawData),true) as $itemArr) {
             $newData[$loopCount] = str_replace('"', '', $itemArr);
             $loopCount++;
         }
-        $this->data = $newData;
+        $this->data = $newData;*/
+        $this->data = $rawData;
+
     }
 
     /**
@@ -58,319 +63,70 @@ class IcingadbCubeRenderer extends BaseHtmlElement
         return $this;
     }
 
-    /**
-     * Render dimentions
-     *
-     * Dynamically render up to 3 dimensions
-     *
-     * @param $urlDimensions array array of dimensions
-     *
-     * @return BaseHtmlElement|\ipl\Html\HtmlElement
-     */
-    public function renderDimensions($urlDimensions) {
-        $counter = 0;
-        $arrayNodes = new ArrayNodes($this->data);
-        $temp = json_decode(json_encode($this->data),true);
-        $tempSub= [];
-        foreach ($temp as $one) {
-            if (array_search(null,$one)) {
-                $tempSub[] = $temp[$counter]['cnt'];
-            }
-            $counter++;
-        }
-        $counter = 0;
-        $lastValue = null;
-        $lastDim = null;
-        $dimIndexCount = count($urlDimensions) -1;
-        $dimensionEachList = [];
-        $dimensionWrapper = Html::tag('div', ['class' => 'cube-dimension-wrapper']);
-        $total = $tempSub[array_key_last($tempSub)];
-        $subTotal = 0;
+    public function makeTree ($urlDimensions) {
 
-        // var_dump($dim[array_key_last ($dim)]);
-        // var_dump($temp);
-        // var_dump(array_search($loc,$temp));
-        //die;
-        foreach ($this->data as $val) {
+       $parent = $urlDimensions[0];
+       if (count($urlDimensions) == 2 ) $children = $urlDimensions[1];
+       $cnt = 'cnt';
 
-            $value = $val;
-            // if dimension 1 or 2
-            if ($dimIndexCount) {
-                //Create each dimension list header if :
-                // $lastValue is null or not same as $value[$dim[$dimIndexCount-1]] and not null
-                // $lastValue == null : means $lastValue have never been initialized, so we create first header and initialize $lastValue
-                // $value[$dim[$dimIndexCount-1]] == null : it is subtotal of each dimension, we don't need to
-                //  create a header for subtotal
-                if (! $value[$urlDimensions[$dimIndexCount]]) {
+        $dim1 = [];
+        $dim2 = [];
+        $cntAr = [];
+        $totalEachDim = [];
 
-                    if (! $value[$urlDimensions[$dimIndexCount]] && ! $value[$urlDimensions[$dimIndexCount-1]])
-                        $total = $value['cnt'];
-                    else
-                        $subTotal = $tempSub[$counter];
-                }
-
-                if (! $lastValue || $lastValue != $value[$urlDimensions[$dimIndexCount-1]] && $value[$urlDimensions[$dimIndexCount-1]]) {
-                    $str = json_decode(strtoupper(($value[$urlDimensions[$dimIndexCount-1]]))) . '('. $subTotal .')';
-                    //TODO fix this
-                    if($str === null) {
-                        $str = $value[$urlDimensions[$dimIndexCount-1]];
-                    }
-
-                    $dimensionEachListHeader = Html::tag('div', ['class' => 'each-dim-list-header']);
-                    $dimensionEachListHeader->add(new Link(ucfirst( $str), 'example/NOPAGE', ['class' => 'cube-link']));
-                    $dimensionEachListHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'icon-cube-filter']));
-                    // after break, add new dim header in new line
-                    $counter++;
-                    $dimensionEachList[$counter] = Html::tag('div', ['class' => 'each-dim-list']);
-
-                    // 3. dimension : create header for each section
-                    if ($dimIndexCount === 2) {
-                        if(!$lastDim || $lastDim != $value[$urlDimensions[0]]) {
-                            //TODO FIX THIS 1 or true
-                            $str = json_decode($value[$urlDimensions[0]]) . '('. $total .')';
-                            if($str === null) {
-                                $str = $value[$urlDimensions[0]];
-                            }
-                            $thirdDimWrapper = Html::tag('div', ['class' => 'cube-third-dim-wrapper'], strtoupper($str));
-                            $dimensionEachList[$counter]->add($thirdDimWrapper);
-                            $lastDim = $value[$urlDimensions[0]];
-                        }
-                    }
-
-                    $dimensionEachList[$counter]->add($dimensionEachListHeader);
-
-                    $lastValue = $value[$urlDimensions[$dimIndexCount-1]];
-                }
-            }
-            //  if $value index is null, it is the subtotal, and we don't create a cube for that
-            if ($value[$urlDimensions[$dimIndexCount]]) {
-                $eachDimensionEl = Html::tag('div', ['class' => 'cube-each-dimension']);
-                $innerHeader = Html::tag('div', ['class' => 'dimension-inner-header']);
-                $innerBody = Html::tag('div', ['class' => 'dimension-inner-body']);
-                $innerFooter = Html::tag('div', ['class' => 'dimension-inner-footer']);
-                $dimValue = json_decode($value[$urlDimensions[$dimIndexCount]]);
-
-                if(is_bool($dimValue)) {
-                    $dimValue = $dimValue ? 'true' :'false';
-                }
-
-                $innerHeader->add(new Link(ucfirst( $dimValue), 'example/NOPAGE', ['class' => 'cube-link']));
-                $innerHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'cube-filter-icon']));
-                $innerBody->add(Html::tag('span', '199'));
-                $innerFooter->add(Html::tag('span', ucfirst(json_decode($value['cnt']))));
-
-                $eachDimensionEl->add($innerHeader);
-                $eachDimensionEl->add($innerBody);
-                $eachDimensionEl->add($innerFooter);
-
-                if ($dimIndexCount === 0) $dimensionWrapper->add($eachDimensionEl);
-                else  $dimensionEachList[$counter]->add($eachDimensionEl);
+        for ($i = 0; $i < count($this->data); $i++) {
+            $dim1[] = $this->data[$i]->$parent;
+            if (count($urlDimensions) > 1) {
+                $dim2[] = $this->data[$i]->$children;
+                if ($dim2[$i]) $cntAr[] = $this->data[$i]->$cnt;
+                else $totalEachDim[] = $this->data[$i]->$cnt;
             }
         }
+        $dim1 =   array_values(array_unique(array_filter(str_replace('"', '', $dim1))));
+        if (count($urlDimensions) == 2 )
+        $dim2 =   array_values(array_unique(array_filter(str_replace('"', '', $dim2))));
 
-        if ($dimIndexCount === 0) {
-            return $dimensionWrapper;
+        $root = new TreeNode();
+        static $count = 0;
+
+        for ($i = 0; $i < count($dim1); $i++) {
+            $rootChild = null;
+            $root->appendChild((new TreeNode)->setValue($dim1[$i]));
+
+            if (count($urlDimensions) == 2 )
+                foreach ($dim2 as $key => $dim) {
+
+                    $rootChild = $root->getChildren()[$i];
+                    $rootChild->appendChild((new TreeNode)->setValue($dim));
+
+                    $setCnt = $rootChild->getChildren()[$key];
+                    $setCnt->appendChild((new TreeNode)->setValue($cntAr[$count++]));
+                }
         }
-        return $dimensionWrapper->add($dimensionEachList);
+    echo  $this->renderDimensionsTree($root, 0 , $totalEachDim);die;
     }
 
-    public function renderDimensionsTestOne ($urlDimensions) {
+    public function renderDimensionsTree ($root, $indent = 0 , $total = null) {
+        $var = new TreeNodeIterator($root);
+        static $str  = null;
+        static $count = 0;
+        do {
+            $str .= str_repeat('|_ ', $indent);
 
-        $rowCounter = 0;
-        $arrayNodes = new ArrayNodes($this->data);
-        $counter = 0;
-        $MYCOUNTER = 0;
-        $lastValue = null;
-        $lastDim = null;
-        $dimIndexCount = count($urlDimensions) - 1;
-        $dimensionEachList = [];
-        $dimensionWrapper = Html::tag('div', ['class' => 'cube-dimension-wrapper']);
+            if(! empty($total)) $str .= nl2br($var->current()->getValue() . $total[$count++] . "\n");
+            else $str .= nl2br($var->current()->getValue() . "\n");
 
-        foreach ($this->data as $val) {
-
-            //  if $value index is null, it is the subtotal, and we don't create a cube for that
-
-            if ($arrayNodes->getRoot($rowCounter)) {
-
-                $eachDimensionEl = Html::tag('div', ['class' => 'cube-each-dimension']);
-                $innerHeader = Html::tag('div', ['class' => 'dimension-inner-header']);
-                $innerBody = Html::tag('div', ['class' => 'dimension-inner-body']);
-                $innerFooter = Html::tag('div', ['class' => 'dimension-inner-footer']);
-
-                $innerHeader->add(new Link(ucfirst($arrayNodes->getRoot($rowCounter)), 'example/NOPAGE', ['class' => 'cube-link']));
-                $innerHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'cube-filter-icon']));
-
-                $innerBody->add(Html::tag('span', '199'));
-                $innerFooter->add(Html::tag('span', ucfirst($arrayNodes->getEachCnt($rowCounter))));
-
-                $eachDimensionEl->add($innerHeader);
-                $eachDimensionEl->add($innerBody);
-                $eachDimensionEl->add($innerFooter);
-
-                if ($dimIndexCount === 0) $dimensionWrapper->add($eachDimensionEl);
-                else  $dimensionEachList[$counter]->add($eachDimensionEl);
+            if($var->current()->hasChildren()) {
+                $this->renderDimensionsTree($var->current(), $indent+1);
             }
-            $rowCounter++;
-        }
+            $var->next();
+        } while($var->current());
 
-        if ($dimIndexCount === 0) {
-            return $dimensionWrapper;
-        }
-        return $dimensionWrapper->add($dimensionEachList);
-    }
-
-    public function renderDimensionsTestTwo ($urlDimensions) {
-        $rowCounter = 0;
-        $arrayNodes = new ArrayNodes($this->data);
-        $counter = 0;
-        $rootNr = 0;
-        $childNr = 0;
-        $lastValue = null;
-        $lastDim = null;
-        $dimIndexCount = count($urlDimensions) - 1;
-        $dimensionEachList = [];
-        $dimensionWrapper = Html::tag('div', ['class' => 'cube-dimension-wrapper']);
-
-        foreach ($arrayNodes->getRoots() as $value) {
-
-            // CREATE HEADER
-                    $dimensionEachListHeader = Html::tag('div', ['class' => 'each-dim-list-header']);
-                    $dimensionEachListHeader->add(new Link(ucfirst($value), 'example/NOPAGE', ['class' => 'cube-link']));
-                    $dimensionEachListHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'icon-cube-filter']));
-                    // after break, add new dim header in new line
-                    $dimensionEachList[$counter] = Html::tag('div', ['class' => 'each-dim-list']);
-
-                    $dimensionEachList[$counter]->add($dimensionEachListHeader);
-
-                    $lastValue = $value;
-
-            //  if $value index is null, it is the subtotal, and we don't create a cube for that
-
-            if ($arrayNodes->getRootChild(1,$rowCounter)) {
-
-                $eachDimensionEl = Html::tag('div', ['class' => 'cube-each-dimension']);
-                $innerHeader = Html::tag('div', ['class' => 'dimension-inner-header']);
-                $innerBody = Html::tag('div', ['class' => 'dimension-inner-body']);
-                $innerFooter = Html::tag('div', ['class' => 'dimension-inner-footer']);
-
-                $innerHeader->add(new Link(ucfirst($arrayNodes->getRoot($rowCounter)), 'example/NOPAGE', ['class' => 'cube-link']));
-                $innerHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'cube-filter-icon']));
-
-                $innerBody->add(Html::tag('span', '199'));
-                $innerFooter->add(Html::tag('span', ucfirst($arrayNodes->getEachCnt($rootNr++,$rowCounter))));
-
-                $eachDimensionEl->add($innerHeader);
-                $eachDimensionEl->add($innerBody);
-                $eachDimensionEl->add($innerFooter);
-
-                if ($dimIndexCount === 0) $dimensionWrapper->add($eachDimensionEl);
-                else  $dimensionEachList[$counter]->add($eachDimensionEl);
-                $rowCounter++;
-            }
-        $counter++;
-        }
-
-        if ($dimIndexCount === 0) {
-            return $dimensionWrapper;
-        }
-        return $dimensionWrapper->add($dimensionEachList);
-    }
-
-
-    public function renderDimensionsTest ($urlDimensions) {
-
-        $rowCounter = 0;
-        $arrayNodes = new ArrayNodes($this->data);
-        $counter = 0;
-        $rootNr = 0;
-        $childNr = 0;
-        $MYCOUNTER = 0;
-        $lastValue = null;
-        $lastDim = null;
-        $dimIndexCount = count($urlDimensions) - 1;
-        $dimensionEachList = [];
-        $dimensionWrapper = Html::tag('div', ['class' => 'cube-dimension-wrapper']);
-
-        foreach ($this->data as $val) {
-
-            $value = $val;
-            // if dimension 1 or 2
-            if ($dimIndexCount) {
-                //Create each dimension list header if :
-                // $lastValue is null or not same as $value[$dim[$dimIndexCount-1]] and not null
-                // $lastValue == null : means $lastValue have never been initialized, so we create first header and initialize $lastValue
-                // $value[$dim[$dimIndexCount-1]] == null : it is subtotal of each dimension, we don't need to
-                //  create a header for subtotal
-
-
-                if (! $lastValue || $lastValue != $value[$urlDimensions[$dimIndexCount-1]] && $value[$urlDimensions[$dimIndexCount-1]]) {
-                    $str = json_decode(strtoupper(($value[$urlDimensions[$dimIndexCount-1]]))) . '('. 33 .')';
-                    //TODO fix this
-                    if($str === null) {
-                        $str = $value[$urlDimensions[$dimIndexCount-1]];
-                    }
-
-                    $dimensionEachListHeader = Html::tag('div', ['class' => 'each-dim-list-header']);
-                    $dimensionEachListHeader->add(new Link(ucfirst( $str), 'example/NOPAGE', ['class' => 'cube-link']));
-                    $dimensionEachListHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'icon-cube-filter']));
-                    // after break, add new dim header in new line
-                    $counter++;
-                    $dimensionEachList[$counter] = Html::tag('div', ['class' => 'each-dim-list']);
-
-                    // 3. dimension : create header for each section
-                    if ($dimIndexCount === 2) {
-                        if(!$lastDim || $lastDim != $value[$urlDimensions[0]]) {
-                            //TODO FIX THIS 1 or true
-                            $str = json_decode($value[$urlDimensions[0]]) . '('. $total .')';
-                            if($str === null) {
-                                $str = $value[$urlDimensions[0]];
-                            }
-                            $thirdDimWrapper = Html::tag('div', ['class' => 'cube-third-dim-wrapper'], strtoupper($str));
-                            $dimensionEachList[$counter]->add($thirdDimWrapper);
-                            $lastDim = $value[$urlDimensions[0]];
-                        }
-                    }
-
-                    $dimensionEachList[$counter]->add($dimensionEachListHeader);
-
-                    $lastValue = $value[$urlDimensions[$dimIndexCount-1]];
-                }
-            }
-            //  if $value index is null, it is the subtotal, and we don't create a cube for that
-
-            if ($arrayNodes->getRoot($rowCounter)) {
-
-                $eachDimensionEl = Html::tag('div', ['class' => 'cube-each-dimension']);
-                $innerHeader = Html::tag('div', ['class' => 'dimension-inner-header']);
-                $innerBody = Html::tag('div', ['class' => 'dimension-inner-body']);
-                $innerFooter = Html::tag('div', ['class' => 'dimension-inner-footer']);
-
-                $innerHeader->add(new Link(ucfirst($arrayNodes->getRoot($rowCounter)), 'example/NOPAGE', ['class' => 'cube-link']));
-                $innerHeader->add(new Link(new Icon('filter'), 'example/NOPAGE', ['class' => 'cube-filter-icon']));
-
-                $innerBody->add(Html::tag('span', '199'));
-                $innerFooter->add(Html::tag('span', ucfirst($arrayNodes->getEachCnt($rowCounter))));
-
-                $eachDimensionEl->add($innerHeader);
-                $eachDimensionEl->add($innerBody);
-                $eachDimensionEl->add($innerFooter);
-
-                if ($dimIndexCount === 0) $dimensionWrapper->add($eachDimensionEl);
-                else  $dimensionEachList[$counter]->add($eachDimensionEl);
-            }
-            $rowCounter++;
-        }
-
-        if ($dimIndexCount === 0) {
-            return $dimensionWrapper;
-        }
-        return $dimensionWrapper->add($dimensionEachList);
+        return $str;
     }
 
     protected function assemble()
     {
-       // $this->add(Html::tag('div',['class' => 'icingadb-cube'], $this->renderDimensions($this->getDimensions())));
-        $this->add(Html::tag('div',['class' => 'icingadb-cube'], $this->renderDimensionsTestTwo($this->getDimensions())));
-        // $this->renderDimensionsTest($this->getDimensions());
+        $this->add(Html::tag('div',['class' => 'icingadb-cube'], $this->makeTree($this->getDimensions())));
     }
 }
