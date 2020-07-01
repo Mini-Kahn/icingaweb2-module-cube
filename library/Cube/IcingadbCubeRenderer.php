@@ -9,6 +9,8 @@ use ipl\Html\Html;
 use ipl\Web\Widget\Icon;
 use ipl\Web\Widget\Link;
 use mysql_xdevapi\Exception;
+use RecursiveIteratorIterator;
+use SplStack;
 
 /**
  * The detail widget show key-value pairs as simple list
@@ -20,6 +22,7 @@ class IcingadbCubeRenderer extends BaseHtmlElement
     protected $tag = 'div';
 
     protected $dimensions;
+
 
     /**
      * Detail widget constructor
@@ -63,70 +66,50 @@ class IcingadbCubeRenderer extends BaseHtmlElement
         return $this;
     }
 
-    public function makeTree ($urlDimensions) {
+    public function makeTree()
+    {
+        ini_set('xdebug.var_display_max_depth', '10');
+        ini_set('xdebug.var_display_max_children', '256');
+        ini_set('xdebug.var_display_max_data', '1024');
 
-       $parent = $urlDimensions[0];
-       if (count($urlDimensions) == 2 ) $children = $urlDimensions[1];
-       $cnt = 'cnt';
+        $pending = new TreeNode();
+        $tiers = new SplStack();
 
-        $dim1 = [];
-        $dim2 = [];
-        $cntAr = [];
-        $totalEachDim = [];
+        foreach ($this->data as $data) {
+            // $data = (object) $data;
 
-        for ($i = 0; $i < count($this->data); $i++) {
-            $dim1[] = $this->data[$i]->$parent;
-            if (count($urlDimensions) > 1) {
-                $dim2[] = $this->data[$i]->$children;
-                if ($dim2[$i]) $cntAr[] = $this->data[$i]->$cnt;
-                else $totalEachDim[] = $this->data[$i]->$cnt;
-            }
-        }
-        $dim1 =   array_values(array_unique(array_filter(str_replace('"', '', $dim1))));
-        if (count($urlDimensions) == 2 )
-        $dim2 =   array_values(array_unique(array_filter(str_replace('"', '', $dim2))));
+            foreach ($this->dimensions as $dimension) {
+                if ($data->$dimension === null) {
+                    $pending->setValue($data);
 
-        $root = new TreeNode();
-        static $count = 0;
+                    while (true) {
+                        if ($tiers->isEmpty() || $tiers->top()->getValue()->$dimension == null)
+                            break;
 
-        for ($i = 0; $i < count($dim1); $i++) {
-            $rootChild = null;
-            $root->appendChild((new TreeNode)->setValue($dim1[$i]));
+                        $pending->appendChild($tiers->pop());
+                    }
 
-            if (count($urlDimensions) == 2 )
-                foreach ($dim2 as $key => $dim) {
+                    $tiers->push($pending);
 
-                    $rootChild = $root->getChildren()[$i];
-                    $rootChild->appendChild((new TreeNode)->setValue($dim));
-
-                    $setCnt = $rootChild->getChildren()[$key];
-                    $setCnt->appendChild((new TreeNode)->setValue($cntAr[$count++]));
+                    $pending = new TreeNode();
+                    continue 2;
                 }
-        }
-    echo  $this->renderDimensionsTree($root, 0 , $totalEachDim);die;
-    }
-
-    public function renderDimensionsTree ($root, $indent = 0 , $total = null) {
-        $var = new TreeNodeIterator($root);
-        static $str  = null;
-        static $count = 0;
-        do {
-            $str .= str_repeat('|_ ', $indent);
-
-            if(! empty($total)) $str .= nl2br($var->current()->getValue() . $total[$count++] . "\n");
-            else $str .= nl2br($var->current()->getValue() . "\n");
-
-            if($var->current()->hasChildren()) {
-                $this->renderDimensionsTree($var->current(), $indent+1);
             }
-            $var->next();
-        } while($var->current());
 
-        return $str;
+            $pending->appendChild((new TreeNode)->setValue($data)); //TODO as in pic
+        }
+
+        $pending->appendChild($tiers->pop());
+        //$renderedTree =
+          return  (new RenderTreeNode($pending))
+            ->setDimensions($this->dimensions)
+            ->iterateMyOutput();
     }
+
 
     protected function assemble()
     {
-        $this->add(Html::tag('div',['class' => 'icingadb-cube'], $this->makeTree($this->getDimensions())));
+        $this->add(Html::tag('div',['class' => 'icingadb-cube'], $this->makeTree()));
+
     }
 }
