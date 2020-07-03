@@ -4,13 +4,10 @@ namespace Icinga\Module\Cube;
 
 use Icinga\Data\Tree\TreeNode;
 use Icinga\Data\Tree\TreeNodeIterator;
-use ipl\Html\FormElement\SelectElement;
 use ipl\Html\Html;
-use ipl\Web\Widget\Icon;
 use ipl\Web\Widget\Link;
 use RecursiveIteratorIterator;
 use SplStack;
-use function Sodium\add;
 
 /**
  *
@@ -22,6 +19,16 @@ class RenderTreeNode extends RecursiveIteratorIterator
     protected $dimensions;
 
     protected $iterableNodes;
+
+    public function __construct(TreeNode $tree)
+    {
+
+        parent::__construct(
+            new TreeNodeIterator($tree),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        $this->iterableNodes = $this;
+    }
 
     /**
      * @return mixed
@@ -40,22 +47,12 @@ class RenderTreeNode extends RecursiveIteratorIterator
         return $this;
     }
 
-    public function __construct(TreeNode $tree)
-    {
-
-        parent::__construct(
-            new TreeNodeIterator($tree),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
-        $this->iterableNodes = $this;
-        $this->stack = new SplStack();
-    }
-
     /**
      * {@inheritdoc}
      */
     public function beginIteration()
     {
+        $this->stack = new SplStack();
         $this->stack->push(Html::tag('div', ['class' => 'cube-main-container']));
     }
 
@@ -64,40 +61,43 @@ class RenderTreeNode extends RecursiveIteratorIterator
      */
     public function beginChildren()
     {
-        $this->stack->push(Html::tag('div', ['class' => 'cubes-dimension-wrapper level' . $this->getDepth()]));
+        $level = count($this->getDimensions()) - 1 - $this->getDepth();
+        $this->stack->push(Html::tag('div', ['class' => 'cubes-dimension-wrapper level' . $level]));
     }
 
-    public function iterateMyOutput()
+    /**
+     * @return Html
+     */
+    public function render()
     {
         $toIgnoreDim = $this->getDimensions();
         array_pop($toIgnoreDim);
-        /*var_dump($toIgnoreDim[count($toIgnoreDim)-1]);die;*/
         $this->dimensions[] = 'cnt';
 
-        foreach($this->iterableNodes as $key => $item) {
+        foreach($this->iterableNodes as $item) {
+            $level = count($this->getDimensions()) - 1 - $this->getDepth();
             $cube = Html::tag('div', ['class' => 'icingadbcube']);
             $body = (Html::tag('div', ['class' => 'body']));
+            $data = null;
             foreach ($this->getDimensions() as $keys => $dimension) {
                 // it is parent
                 if ($this->getInnerIterator()->hasChildren()) {
-
-                    // to ignore same dimension values in parents, so just put the unique value in child parent
+                    // to ignore same value in every parent header and empty tags
                     if($keys < $this->getDepth() - 1 || $item->getValue()->$dimension === null) {
                         continue;
                     }
-                  //  var_dump($dimension, $toIgnoreDim[count($toIgnoreDim)-1]);
-                    if(! is_numeric($item->getValue()->$dimension)) {
-                        $cube->add(new Link(ucfirst(str_replace('"','', $item->getValue()->$dimension)), 'example/NOPAGE', ['class' => 'cube-link']));
-                    }
-                    else {
+                    if (! is_numeric($item->getValue()->$dimension)) {
+                    $data = ucfirst(str_replace('"','', $item->getValue()->$dimension));
+                    } else {
                         $cube
-                            ->add(Html::tag('span', ['class' => 'cube-item' . $this->iterableNodes->getDepth()], str_replace('"','', $item->getValue()->$dimension)))
-                            ->add(new Link('', 'example/NOPAGE', ['class' => 'cube-filter-icon']));;
+                            ->add((new Link($data , 'example/NOPAGE', ['class' => 'cube-link']))
+                                ->add(Html::tag('span', ['class' => 'sum' . $level], ' ('. $item->getValue()->$dimension. ')'))
+                            )
+                            ->add(new Link('', 'example/NOPAGE', ['class' => 'icon-filter']));
                     }
-                } // it is child
-                else {
-                    // to just put the last dim value in span and the cnt
-                    if( in_array($dimension, $toIgnoreDim)) {
+                } else { // it is child
+                    // to just put the last dim value and cnt in span
+                    if(in_array($dimension, $toIgnoreDim)) {
                         continue;
                     }
                     if(! is_numeric($item->getValue()->$dimension)) {
@@ -107,21 +107,20 @@ class RenderTreeNode extends RecursiveIteratorIterator
                                 ->add(new Link('', 'example/NOPAGE', ['class' => 'icon-filter']))
                             );
                             $body->add((Html::tag('span', ['class' => 'critical'], '21')));
-                        //TODO ADD
                     }
                     else {
                         //TODO ADD SPAN FOR CRITICAL OR OK HERE, maybe we need a if condition to avoid creating other span, if all hosts are ok
                         $cube->add(
                             $body->add((Html::tag('span', ['class' => 'others']))
                                     ->add((Html::tag('span', ['class' => 'ok'], str_replace('"','', $item->getValue()->$dimension))))
-                            )
+                                )
                         );
                     }
                 }
             }
             if ($this->getInnerIterator()->hasChildren()) {
-                $htmlEl = (Html::tag('div', ['class' => 'dimension-wrapper level' . $this->getDepth()]))
-                    ->add($cube->setAttribute('class' ,'cube-header level' . $this->getDepth()))
+                $htmlEl = (Html::tag('div', ['class' => 'dimension-wrapper level' . $level]))
+                    ->add($cube->setAttribute('class' ,'cube-header level' . $level))
                     ->add($this->stack->pop());
 
                 $this->stack->top()->add($htmlEl);
@@ -132,5 +131,4 @@ class RenderTreeNode extends RecursiveIteratorIterator
 
         return $this->stack->pop();
     }
-
 }

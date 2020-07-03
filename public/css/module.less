@@ -479,27 +479,26 @@ select option[value=""] {
 }
 
 // SD CODE
-
-
-.cube-main-container {
-  border: solid 2px red;
-  padding: 20px;
-}
-
 .cube-header {
   font-weight: bolder;
-  display: inline;
+  display: block;
 }
 
-.cube-header.level2 {
-  border: 2px red solid;
-  background-color: yellow;
-  display: inline-block;
-  padding: 0.30em;
+.cube-header.level1 {
+  background-color: white;
   width: 10em;
   height: 10em;
   margin: 0.5em;
   text-align: center;
+  display: flex;
+  float: left;
+  font-weight: bold;
+  padding-left: 0;
+}
+.cube-header.level2,.cube-header.level3  {
+  color: #f56;
+  border-bottom: 1px #f56 solid;
+  font-size: 1.2em;
 }
 
 .icingadbcube {
@@ -510,12 +509,14 @@ select option[value=""] {
   height: 10em;
   margin: 0.5em;
   text-align: center;
+  font-size: 1em;
 
   .header {
     display: flex;
     text-align: center;
     color: white;
     margin-bottom: 1em;
+
   }
 
   .body .critical {
@@ -533,43 +534,22 @@ select option[value=""] {
       background-color: #4b7;
       margin-left: 0.2em;
       margin-top: 0.8em;
-      font-size: 1em;
       border-radius: 0.1em;
+      padding: 0.05em 0.2em;
     }
   }
 }
 
-.cube-dimension-wrapper .level3 {
+.cubes-dimension-wrapper .level0 {
   display: inline-flex;
 }
-
-
-
-
-
-
-.dimension-list {
-  list-style-type: none;
+.cubes-dimension-wrapper.level1 {
+  border-left: 0.5em #f56 solid;
 }
 
-.icinga-cube {
-  color: white;
-  display:flex;
-}
-
-.each-dim-list {
-  display:flex;
-  flex-wrap: wrap;
-
-  .each-dim-list-header {
-    width: 10em;
-    height: 10em;
-    margin: 0.5em;
-    padding: 0.30em;
-    display: flex;
-    border-left: 0.3em red solid;
-    font-weight: bold;
-  }
+.cubes-dimension-wrapper.level2 {
+  border-left: red 1px solid;
+  padding-left: 20px ;
 }
 
 .cube-link {
@@ -577,38 +557,5 @@ select option[value=""] {
   max-width: 8em;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.dimension-inner-header {
-  display: flex;
-  text-align: center;
-  color: white;
-  margin-bottom: 0.5em;
-  font-size: 1.2em;
-  font-weight: bold;
-}
-
-.dimension-inner-body {
-  display: flex;
-  justify-content: center;
-  color: white;
-  overflow: auto;
-  font-size: 3em;
-}
-
-.dimension-inner-footer {
-  margin-top: 10px;
-  display: flex;
-  justify-content: center;
-  font-size: 1.0em;
-  span {
-    background-color: #4b7;
-    padding: 0.2em;
-  }
-}
-
-.cube-third-dim-wrapper {
-  border-bottom: 0.2em solid red;
-  flex-basis: 100%;
-}
