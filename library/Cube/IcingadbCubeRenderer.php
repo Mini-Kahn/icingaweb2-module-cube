@@ -76,7 +76,6 @@ class IcingadbCubeRenderer extends BaseHtmlElement
         $tiers = new SplStack();
 
         foreach ($this->data as $data) {
-            // $data = (object) $data;
 
             foreach ($this->dimensions as $dimension) {
                 if ($data->$dimension === null) {
