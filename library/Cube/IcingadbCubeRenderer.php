@@ -57,7 +57,7 @@ class IcingadbCubeRenderer extends BaseHtmlElement
      *
      * @return TreeNode
      */
-    public function getTreeStructure()
+    public function getCubeTree()
     {
         $pending = new TreeNode();
         $tiers = new SplStack();
@@ -85,19 +85,13 @@ class IcingadbCubeRenderer extends BaseHtmlElement
         return $pending->appendChild($tiers->pop());
     }
 
-    /**
-     * Render tree
-     *
-     * @return Html
-     */
-    public function renderTreeStructure() {
-        return  (new RenderTreeNode($this->getTreeStructure()))
-            ->setDimensions($this->dimensions)
-            ->render();
-    }
 
     protected function assemble()
     {
-        $this->add($this->renderTreeStructure());
+        $this->add(
+            (new RenderCubeTreeNode($this->getCubeTree()))
+                ->setDimensions($this->dimensions)
+                ->render()
+        );
     }
 }

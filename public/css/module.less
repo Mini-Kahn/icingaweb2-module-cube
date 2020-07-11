@@ -501,6 +501,10 @@ select option[value=""] {
   font-size: 1.2em;
 }
 
+.icingadbcube.allUp {
+  background-color: #4b7;
+}
+
 .icingadbcube {
   background-color: #f56;
   display: inline-block;
@@ -510,20 +514,19 @@ select option[value=""] {
   margin: 0.5em;
   text-align: center;
   font-size: 1em;
+  color: white;
 
   .header {
     display: flex;
     text-align: center;
-    color: white;
     margin-bottom: 1em;
 
   }
 
-  .body .critical {
+  .body .down {
       display: inline;
       border-radius: 0.1em;
       padding: 0.05em 0.2em;
-      color: white;
       font-size: 3em;
   }
 
@@ -537,17 +540,22 @@ select option[value=""] {
       border-radius: 0.1em;
       padding: 0.05em 0.2em;
     }
+    .hidden {
+      visibility: hidden;
+    }
   }
 }
 
-.cubes-dimension-wrapper .level0 {
-  display: inline-flex;
-}
-.cubes-dimension-wrapper.level1 {
+.cubes-dimension-wrapper.level0 {
   border-left: 0.5em #f56 solid;
 }
 
-.cubes-dimension-wrapper.level2 {
+.cubes-dimension-wrapper.level1{
+  border-left: red 1px solid;
+  padding-left: 20px ;
+}
+
+.cubes-dimension-wrapper.level2{
   border-left: red 1px solid;
   padding-left: 20px ;
 }

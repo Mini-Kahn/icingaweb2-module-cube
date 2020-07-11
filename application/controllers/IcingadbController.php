@@ -96,7 +96,11 @@ class IcingadbController extends CompatController
             if ($isSetSettingParam) $this->addContent($settings);
 
             $select = (new Select())
-                ->from('host h');
+                ->from('host h')
+                ->join(
+                    "host_state state",
+                    "state.host_id = h.id"
+                );
 
             $columns = [];
             foreach ($urlDimensions as $dimension) {
@@ -110,11 +114,14 @@ class IcingadbController extends CompatController
                         "{$dimension}.id = {$dimension}_junction.customvar_id AND {$dimension}.name = \"{$dimension}\""
                     );
 
+
                 $columns[$dimension] = $dimension . '.value';
             }
 
             $groupByValues = $columns;
             $columns['cnt'] = 'SUM(1)';
+            $columns['count_up'] = 'SUM(CASE WHEN state.soft_state = 0 THEN  1 ELSE 0 END)';
+            $columns['count_down'] = 'SUM(CASE WHEN state.soft_state = 1 THEN  1 ELSE 0 END)';
             $lastElmKey = array_key_last($groupByValues);
             $groupByValues[$lastElmKey] = $groupByValues[$lastElmKey] . ' WITH ROLLUP';
 
@@ -124,6 +131,7 @@ class IcingadbController extends CompatController
                 ->groupBy($groupByValues);
 
             $rs = $this->getDb()->select($select)->fetchAll();
+
             $details = (new icingadbCubeRenderer($rs))->setDimensions($urlDimensions);
             $this->addContent($details);
         }
